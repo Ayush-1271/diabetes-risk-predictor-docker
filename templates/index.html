@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diabetes Progression Predictor</title>
+  <style>
+    body {
+      font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 40px 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 32px;
+      max-width: 560px;
+      width: 100%;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; }
+    p.subtitle { color: #666; margin-top: 0; margin-bottom: 24px; font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+    label { display: block; font-size: 0.85rem; margin-top: 12px; margin-bottom: 4px; color: #333; }
+    input {
+      width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px;
+      font-size: 0.95rem; box-sizing: border-box;
+    }
+    button {
+      margin-top: 20px; width: 100%; padding: 10px; border: none; border-radius: 6px;
+      background: #1c8a5e; color: white; font-size: 1rem; cursor: pointer;
+    }
+    button:hover { background: #166f4b; }
+    .result {
+      margin-top: 24px; padding: 16px; border-radius: 8px; background: #eefaf0;
+      border: 1px solid #b8e6c1;
+    }
+    .result h2 { margin: 0 0 4px 0; font-size: 1.3rem; color: #1c7c33; }
+    .error { margin-top: 20px; padding: 12px; border-radius: 8px; background: #fdeaea; color: #a12a2a; border: 1px solid #f3b7b7; }
+    footer { margin-top: 24px; font-size: 0.75rem; color: #999; text-align: center; }
+    code { background: #f0f0f0; padding: 2px 5px; border-radius: 4px; }
+    .note { font-size: 0.75rem; color: #888; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Diabetes Progression Predictor</h1>
+    <p class="subtitle">Random Forest regressor trained on scikit-learn's classic Diabetes dataset. Fields use the dataset's standardized encoding (small values around 0, not raw units).</p>
+
+    <form method="POST">
+      <div class="grid">
+        <div><label for="age">age</label><input type="number" step="0.001" name="age" id="age" value="{{ values.age }}" required></div>
+        <div><label for="sex">sex</label><input type="number" step="0.001" name="sex" id="sex" value="{{ values.sex }}" required></div>
+        <div><label for="bmi">bmi</label><input type="number" step="0.001" name="bmi" id="bmi" value="{{ values.bmi }}" required></div>
+        <div><label for="bp">bp</label><input type="number" step="0.001" name="bp" id="bp" value="{{ values.bp }}" required></div>
+        <div><label for="s1">s1</label><input type="number" step="0.001" name="s1" id="s1" value="{{ values.s1 }}" required></div>
+        <div><label for="s2">s2</label><input type="number" step="0.001" name="s2" id="s2" value="{{ values.s2 }}" required></div>
+        <div><label for="s3">s3</label><input type="number" step="0.001" name="s3" id="s3" value="{{ values.s3 }}" required></div>
+        <div><label for="s4">s4</label><input type="number" step="0.001" name="s4" id="s4" value="{{ values.s4 }}" required></div>
+        <div><label for="s5">s5</label><input type="number" step="0.001" name="s5" id="s5" value="{{ values.s5 }}" required></div>
+        <div><label for="s6">s6</label><input type="number" step="0.001" name="s6" id="s6" value="{{ values.s6 }}" required></div>
+      </div>
+      <p class="note">Try: age 0.05, sex 0.05, bmi 0.06, bp 0.02, s1 -0.04, s2 -0.03, s3 -0.03, s4 -0.002, s5 0.02, s6 -0.01</p>
+
+      <button type="submit">Predict progression score</button>
+    </form>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if result %}
+      <div class="result">
+        <h2>{{ result.predicted_disease_progression }}</h2>
+        <div>Predicted disease progression score (higher = more progression)</div>
+      </div>
+    {% endif %}
+
+    <footer>
+      Also available as a JSON API: <code>POST /api/predict</code>
+    </footer>
+  </div>
+</body>
+</html>
