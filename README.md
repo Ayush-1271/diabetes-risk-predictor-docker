@@ -74,8 +74,8 @@ Response:
 
 Render builds directly from the `Dockerfile` in this repo.
 
-- Live app: `<add Render URL here>`
-- GitHub repo: `<add repo URL here>`
+- Live app: pending Render deployment — see `RENDER_DEPLOYMENT_GUIDE.md`
+- GitHub repo: https://github.com/Ayush-1271/diabetes-risk-predictor-docker
 
 ## Model details
 
