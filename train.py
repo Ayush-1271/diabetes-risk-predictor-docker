@@ -2,17 +2,27 @@
 train.py
 --------
 Trains a regressor on the classic Diabetes dataset (Efron et al., 2004),
-built directly into scikit-learn — predicting a quantitative measure of
-disease progression one year after baseline from 10 baseline variables.
+built directly into scikit-learn - predicting a quantitative measure of
+disease progression one year after baseline.
 
-This dataset was chosen deliberately for the Docker-deployed project: it
-ships inside scikit-learn itself (no external download required, so
-training is 100% reproducible anywhere, including restricted-network CI
-environments), it is small (442 rows), and a tuned Random Forest reaches a
-solid R^2 while keeping the saved model file tiny.
+Two deliberate choices make this deployment genuinely usable by a
+non-technical person, unlike a naive use of this dataset:
+
+1. Loaded with scaled=False, which returns the ORIGINAL real-world-unit
+   values (age in years, actual blood pressure, actual glucose level,
+   etc.) instead of scikit-learn's default pre-standardized z-scores that
+   nobody outside a stats class could meaningfully fill into a form.
+   StandardScaler inside the pipeline handles normalization internally.
+
+2. Reduced to 5 features a person could plausibly know from a basic
+   health checkup - age, sex, BMI, average blood pressure, and blood
+   sugar (glucose) level - dropping the 4 detailed lipid-panel values
+   (total cholesterol, LDL, HDL, cholesterol/HDL ratio, triglycerides)
+   that require lab results most people don't have on hand. Blood sugar
+   in particular is directly relevant to a DIABETES predictor.
 
 Pipeline:
-    1. Load data
+    1. Load data (raw units)
     2. EDA (saved as PNG plots)
     3. Feature engineering (derived interaction features)
     4. Train/test split
@@ -42,13 +52,19 @@ from sklearn.preprocessing import StandardScaler
 warnings.filterwarnings("ignore")
 
 RANDOM_STATE = 42
-BASE_FEATURES = ["age", "sex", "bmi", "bp", "s1", "s2", "s3", "s4", "s5", "s6"]
-ENGINEERED_FEATURES = ["bmi_bp_interaction", "s5_bmi_interaction"]
+
+# Only the features a general user could plausibly provide from a basic
+# checkup - dropping the detailed lipid panel (s1-s5) on purpose.
+BASE_FEATURES = ["age", "sex", "bmi", "bp", "s6"]
+ENGINEERED_FEATURES = ["bmi_bp_interaction", "glucose_bmi_interaction"]
 FEATURE_NAMES = BASE_FEATURES + ENGINEERED_FEATURES
 
 
 def load_data() -> pd.DataFrame:
-    data = load_diabetes(as_frame=True)
+    # scaled=False returns real-world units (age in years, actual blood
+    # pressure, actual glucose level, etc.) instead of pre-standardized
+    # z-scores, so the web form can ask for numbers a person actually has.
+    data = load_diabetes(as_frame=True, scaled=False)
     df = data.frame.rename(columns={"target": "disease_progression"})
     return df
 
@@ -56,9 +72,9 @@ def load_data() -> pd.DataFrame:
 def run_eda(df: pd.DataFrame) -> None:
     sns.set_theme(style="whitegrid")
 
-    plt.figure(figsize=(7, 6))
+    plt.figure(figsize=(6, 5))
     corr = df[BASE_FEATURES + ["disease_progression"]].corr()
-    sns.heatmap(corr, annot=True, cmap="viridis", fmt=".2f", annot_kws={"size": 7})
+    sns.heatmap(corr, annot=True, cmap="viridis", fmt=".2f", annot_kws={"size": 8})
     plt.title("Feature correlation heatmap")
     plt.tight_layout()
     plt.savefig("eda_correlation_heatmap.png", dpi=110)
@@ -75,14 +91,10 @@ def run_eda(df: pd.DataFrame) -> None:
 
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Note: the built-in Diabetes dataset features are already mean-centered
-    and scaled by sklearn, so derived products act as interaction terms
-    rather than literal physical ratios.
-    """
+    """Real physical interaction terms, now that features are raw units."""
     df = df.copy()
     df["bmi_bp_interaction"] = df["bmi"] * df["bp"]
-    df["s5_bmi_interaction"] = df["s5"] * df["bmi"]
+    df["glucose_bmi_interaction"] = df["s6"] * df["bmi"]
     return df
 
 
@@ -97,9 +109,6 @@ def build_pipeline() -> Pipeline:
 
 def train_and_tune(X_train, y_train) -> GridSearchCV:
     pipeline = build_pipeline()
-    # Small grid + capped depth/estimators: keeps the pickled model light
-    # (well under 1MB) and training fast, without sacrificing much accuracy
-    # on a dataset this size.
     param_grid = {
         "reg__n_estimators": [80, 150],
         "reg__max_depth": [3, 5, None],
