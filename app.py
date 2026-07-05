@@ -7,6 +7,10 @@ to the general public, both as:
   - a JSON REST API at "/api/predict"      (machine-friendly)
 
 Deployed on Render using Docker (see Dockerfile).
+
+Uses real-world units (age in years, actual blood pressure, actual
+glucose level) and only 5 fields a person could plausibly know from a
+basic health checkup - see train.py for why.
 """
 
 import os
@@ -22,27 +26,29 @@ bundle = joblib.load(MODEL_PATH)
 MODEL = bundle["model"]
 FEATURE_NAMES = bundle["feature_names"]
 
-# Matches sklearn's built-in Diabetes dataset (already mean-centered/scaled)
-REQUIRED_FIELDS = ["age", "sex", "bmi", "bp", "s1", "s2", "s3", "s4", "s5", "s6"]
+REQUIRED_FIELDS = ["age", "sex", "bmi", "bp", "s6"]
+
+# Realistic example values shown as placeholders in the web form.
+EXAMPLE_VALUES = {"age": 45, "sex": 1, "bmi": 26.5, "bp": 92.0, "s6": 95}
 
 
-def build_features(age, sex, bmi, bp, s1, s2, s3, s4, s5, s6):
+def build_features(age, sex, bmi, bp, s6):
     bmi_bp_interaction = bmi * bp
-    s5_bmi_interaction = s5 * bmi
-    return np.array([[age, sex, bmi, bp, s1, s2, s3, s4, s5, s6, bmi_bp_interaction, s5_bmi_interaction]])
+    glucose_bmi_interaction = s6 * bmi
+    return np.array([[age, sex, bmi, bp, s6, bmi_bp_interaction, glucose_bmi_interaction]])
 
 
 def predict_progression(**kwargs):
     X = build_features(**kwargs)
     pred = float(MODEL.predict(X)[0])
-    return {"predicted_disease_progression": round(pred, 2)}
+    return {"predicted_disease_progression": round(pred, 1)}
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
     error = None
-    form_values = {f: 0.0 for f in REQUIRED_FIELDS}
+    form_values = dict(EXAMPLE_VALUES)
 
     if request.method == "POST":
         try:
@@ -59,15 +65,16 @@ def api_predict():
     """
     JSON API for the general public / other programs.
 
-    Note: these 10 fields use scikit-learn's standardized encoding from the
-    built-in Diabetes dataset (each is mean-centered and scaled, so typical
-    values are small numbers roughly between -0.2 and 0.2, not raw units).
+    Fields use real clinical units:
+      age  - age in years
+      sex  - 1 or 2 (as coded in the original clinical dataset)
+      bmi  - body mass index
+      bp   - average blood pressure (mm Hg)
+      s6   - blood sugar / glucose level (mg/dL)
 
     Example request:
         POST /api/predict
-        {"age": 0.05, "sex": 0.05, "bmi": 0.06, "bp": 0.02,
-         "s1": -0.04, "s2": -0.03, "s3": -0.03, "s4": -0.002,
-         "s5": 0.02, "s6": -0.01}
+        {"age": 45, "sex": 1, "bmi": 26.5, "bp": 92.0, "s6": 95}
     """
     data = request.get_json(silent=True) or {}
     missing = [f for f in REQUIRED_FIELDS if f not in data]
