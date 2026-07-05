@@ -18,19 +18,19 @@
       border-radius: 12px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
       padding: 32px;
-      max-width: 560px;
+      max-width: 480px;
       width: 100%;
     }
     h1 { font-size: 1.4rem; margin-bottom: 4px; }
     p.subtitle { color: #666; margin-top: 0; margin-bottom: 24px; font-size: 0.9rem; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
-    label { display: block; font-size: 0.85rem; margin-top: 12px; margin-bottom: 4px; color: #333; }
-    input {
-      width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px;
+    label { display: block; font-size: 0.9rem; margin-top: 14px; margin-bottom: 4px; color: #333; font-weight: 600; }
+    label .unit { font-weight: 400; color: #888; font-size: 0.8rem; }
+    input, select {
+      width: 100%; padding: 9px 10px; border: 1px solid #ccc; border-radius: 6px;
       font-size: 0.95rem; box-sizing: border-box;
     }
     button {
-      margin-top: 20px; width: 100%; padding: 10px; border: none; border-radius: 6px;
+      margin-top: 22px; width: 100%; padding: 10px; border: none; border-radius: 6px;
       background: #1c8a5e; color: white; font-size: 1rem; cursor: pointer;
     }
     button:hover { background: #166f4b; }
@@ -39,31 +39,35 @@
       border: 1px solid #b8e6c1;
     }
     .result h2 { margin: 0 0 4px 0; font-size: 1.3rem; color: #1c7c33; }
+    .result p { margin: 4px 0 0 0; font-size: 0.85rem; color: #444; }
     .error { margin-top: 20px; padding: 12px; border-radius: 8px; background: #fdeaea; color: #a12a2a; border: 1px solid #f3b7b7; }
     footer { margin-top: 24px; font-size: 0.75rem; color: #999; text-align: center; }
     code { background: #f0f0f0; padding: 2px 5px; border-radius: 4px; }
-    .note { font-size: 0.75rem; color: #888; margin-top: 4px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Diabetes Progression Predictor</h1>
-    <p class="subtitle">Random Forest regressor trained on scikit-learn's classic Diabetes dataset. Fields use the dataset's standardized encoding (small values around 0, not raw units).</p>
+    <p class="subtitle">Random Forest regressor trained on scikit-learn's Diabetes dataset. Enter values from a basic health checkup below - real units, no special knowledge needed.</p>
 
     <form method="POST">
-      <div class="grid">
-        <div><label for="age">age</label><input type="number" step="0.001" name="age" id="age" value="{{ values.age }}" required></div>
-        <div><label for="sex">sex</label><input type="number" step="0.001" name="sex" id="sex" value="{{ values.sex }}" required></div>
-        <div><label for="bmi">bmi</label><input type="number" step="0.001" name="bmi" id="bmi" value="{{ values.bmi }}" required></div>
-        <div><label for="bp">bp</label><input type="number" step="0.001" name="bp" id="bp" value="{{ values.bp }}" required></div>
-        <div><label for="s1">s1</label><input type="number" step="0.001" name="s1" id="s1" value="{{ values.s1 }}" required></div>
-        <div><label for="s2">s2</label><input type="number" step="0.001" name="s2" id="s2" value="{{ values.s2 }}" required></div>
-        <div><label for="s3">s3</label><input type="number" step="0.001" name="s3" id="s3" value="{{ values.s3 }}" required></div>
-        <div><label for="s4">s4</label><input type="number" step="0.001" name="s4" id="s4" value="{{ values.s4 }}" required></div>
-        <div><label for="s5">s5</label><input type="number" step="0.001" name="s5" id="s5" value="{{ values.s5 }}" required></div>
-        <div><label for="s6">s6</label><input type="number" step="0.001" name="s6" id="s6" value="{{ values.s6 }}" required></div>
-      </div>
-      <p class="note">Try: age 0.05, sex 0.05, bmi 0.06, bp 0.02, s1 -0.04, s2 -0.03, s3 -0.03, s4 -0.002, s5 0.02, s6 -0.01</p>
+      <label for="age">Age <span class="unit">(years)</span></label>
+      <input type="number" step="1" min="0" name="age" id="age" value="{{ values.age }}" required>
+
+      <label for="sex">Sex <span class="unit">(as coded in the clinical data: 1 or 2)</span></label>
+      <select name="sex" id="sex" required>
+        <option value="1" {% if values.sex == 1 or values.sex == '1' %}selected{% endif %}>1</option>
+        <option value="2" {% if values.sex == 2 or values.sex == '2' %}selected{% endif %}>2</option>
+      </select>
+
+      <label for="bmi">BMI <span class="unit">(body mass index)</span></label>
+      <input type="number" step="0.1" name="bmi" id="bmi" value="{{ values.bmi }}" required>
+
+      <label for="bp">Average blood pressure <span class="unit">(mm Hg)</span></label>
+      <input type="number" step="0.1" name="bp" id="bp" value="{{ values.bp }}" required>
+
+      <label for="s6">Blood sugar / glucose level <span class="unit">(mg/dL)</span></label>
+      <input type="number" step="0.1" name="s6" id="s6" value="{{ values.s6 }}" required>
 
       <button type="submit">Predict progression score</button>
     </form>
@@ -75,7 +79,7 @@
     {% if result %}
       <div class="result">
         <h2>{{ result.predicted_disease_progression }}</h2>
-        <div>Predicted disease progression score (higher = more progression)</div>
+        <p>Predicted disease progression score (a higher number means more progression one year from now). This is a research-style estimate, not a medical diagnosis.</p>
       </div>
     {% endif %}
 
